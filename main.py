@@ -8,51 +8,49 @@ import re
 
 client = genai.Client()
 
-#def bold(text):
-    #response_label.configure(state="normal")
-    #response_label.delete("1.0", "end")
-
-    #parts = re.split(r"\*\*(.*?)\*\*", text)
-    #for i, part in enumerate(parts):
-        #tag = "bold" if i % 2 else ""
-        #response_label.insert("end", part, tag)
-
-    #response_label.configure(state="disabled")
-
 def onclick():
-    user_promt = promt_entry.get()
-    if user_promt == "":
-        messagebox.showerror("Помилка","Ти нічого не написав")
-        return
-    else:
+    try:
+        user_promt = promt_entry.get()
+        if user_promt == "":
+            messagebox.showerror("Помилка","Ти нічого не написав")
+            return
+        else:
+            response_label.configure(state="normal")
+            response_label.delete("1.0", "end")
+            response_label.insert("1.0", f"Ваш запит: {user_promt}\n\n", "promt")
+
+            window.update()
+
+            promt = (
+                f"Виконай запит користувач: {user_promt}. При формуванні відповіді виконуй наступні правила та обмежень.:\n{"\n".join(rules_list)}")
+            print(promt)
+            response = client.models.generate_content(
+                model="gemini-3-flash-preview",
+                contents=(promt),
+            )
+
+            parts = re.split(r"\*\*(.*?)\*\*", response.text)
+            for i, part in enumerate(parts):
+                if part != "":
+                    if i % 2 != 0:
+                        response_label.insert("end",part,"bold")
+                        response_label.configure(state="disabled")
+
+                    else:
+                        response_label.insert("end",part,"response")
+                        response_label.configure(state="disabled")
+
+            #bold(response.text)
+            #response_label._textbox.tag_config("bold", font=("Arial", 13, "bold"))
+
+            #response_label.insert("end", response.text, "response")
+            response_label.configure(state="disabled")
+    except Exception as error:
+        #print(str(error))
         response_label.configure(state="normal")
-        response_label.delete("1.0", "end")
-        response_label.insert("1.0", f"Ваш запит: {user_promt}\n\n", "promt")
-
-        window.update()
-
-        promt = (
-            f"Виконай запит користувач: {user_promt}. При формуванні відповіді виконуй наступні правила та обмежень.:\n{"\n".join(rules_list)}")
-        print(promt)
-        response = client.models.generate_content(
-            model="gemini-2.5-flash",
-            contents=(promt),
-        )
-
-        parts = re.split(r"\*\*(.*?)\*\*", response.text)
-        for i, part in enumerate(parts):
-            if part != "":
-                if i % 2 != 0:
-                    response_label.insert("end",part,"response")
-
-                else:
-                    response_label.insert("end",part,"bold")
-
-        #bold(response.text)
-        #response_label._textbox.tag_config("bold", font=("Arial", 13, "bold"))
-
-        #response_label.insert("end", response.text, "response")
+        response_label.insert("end", f"Виникла помилка: \n\n {error}", "error")
         response_label.configure(state="disabled")
+
 
 window = ctk.CTk()
 window.title("Візуальний асистент")
@@ -63,7 +61,8 @@ response_label = ctk.CTkTextbox(master=window, width=350, height=350, wrap="word
 response_label.pack(pady=10)
 response_label._textbox.tag_config("promt", foreground="Gray" ,font = ("Arial",17,"bold"))
 response_label._textbox.tag_config("response", font=("Arial",13,))
-response_label._textbox.tag_config("response", font=("Arial",12,"bold"))
+response_label._textbox.tag_config("bold", font=("Arial",12,"bold"))
+response_label._textbox.tag_config("error",foreground="Red", font=("Arial",15,"bold"))
 
 promt_button = ctk.CTkButton(master=window, width = 200,height=50, command= onclick,text= "Відправити", font=("Arial", 25))
 promt_button.pack(side="bottom",pady=15)
